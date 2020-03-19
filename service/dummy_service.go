@@ -1,10 +1,8 @@
-package main
+package service
 
-import (
-	"net/http"
-)
+import "net/http"
 
-func main() {
+func Dummy() {
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{
   "BlockStorage.BlockHeight": {
@@ -14,5 +12,7 @@ func main() {
 }`))
 	})
 
-	http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/500", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
 }

@@ -14,10 +14,15 @@ func TestCheck(t *testing.T) {
 
 	status, err := Check("http://localhost:6666/metrics")
 	require.NoError(t, err)
-	require.EqualValues(t, "200 OK", status)
+	require.EqualValues(t, "200 OK", status.Status)
+
+	blockHeight := status.Payload["BlockStorage.BlockHeight"].(map[string]interface{})["Value"]
+
+	require.EqualValues(t, 3715964, blockHeight)
 
 	status, err = Check("http://localhost:6666/500")
-	require.EqualError(t, err, "wrong response")
-	require.EqualValues(t, "500 Internal Server Error", status)
+	require.EqualError(t, err, "unexpected response code 500")
+	require.EqualValues(t, "500 Internal Server Error", status.Status)
 
+	require.Empty(t, status.Payload)
 }

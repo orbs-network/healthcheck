@@ -20,15 +20,21 @@ Usage:
 
 ```json
 {
-  "status": "200 OK",
-  "timestamp": "2020-03-19T11:50:21.0846185Z"
+  "Status": "200 OK",
+  "Timestamp": "2020-03-19T11:50:21.0846185Z",
+  "Payload": {
+    "BlockStorage.BlockHeight": {
+     "Name": "BlockStorage.BlockHeight",
+     "Value": 3715964
+    }
+  }
 }
 ```
 
 ```json
 {
-  "error": "Get https://3123: dial tcp 0.0.12.51:443: connect: no route to host",
-  "status": "Not Provisioned",
-  "timestamp": "2020-03-19T13:52:34.842475+02:00"
+  "Error": "Get https://3123: dial tcp 0.0.12.51:443: connect: no route to host",
+  "Status": "Not Provisioned",
+  "Timestamp": "2020-03-19T13:52:34.842475+02:00"
 }
 ```

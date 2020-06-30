@@ -14,42 +14,42 @@ import (
 type Status struct {
 	Status    string
 	Timestamp time.Time
-	Error     error
+	Error     string
 	Payload   map[string]interface{}
 }
 
-func Check(url string) (status Status, err error) {
-	status.Status = "Not Provisioned"
-	status.Timestamp = time.Now()
+func defaultStatus(err error) Status {
+	return Status{
+		Status:    "Not provisioned",
+		Timestamp: time.Now(),
+		Error:     err.Error(),
+	}
+}
 
+func Check(url string) (status Status, err error) {
 	client := http.Client{Timeout: 5 * time.Second}
 	res, err := client.Get(url)
 	if err != nil {
-		status.Error = err
-		return
+		return defaultStatus(err), err
 	}
+
 	rawJSON, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	if err != nil {
-		status.Error = err
-		return
+		return defaultStatus(err), err
 	}
 
-	status.Status = res.Status
-	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
-		err = fmt.Errorf("unexpected response code %d", res.StatusCode)
-		status.Error = err
-	}
-
-	payload := make(map[string]interface{})
-	jsonErr := json.Unmarshal(rawJSON, &payload)
+	jsonErr := json.Unmarshal(rawJSON, &status)
 	if jsonErr != nil {
-		println(err)
+		wrappedErr := fmt.Errorf("failed to parse status JSON: %s", jsonErr)
+		return defaultStatus(wrappedErr), wrappedErr
 	}
 
-	status.Payload = payload
+	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
+		return status, fmt.Errorf("unexpected response code %d", res.StatusCode)
+	}
 
-	return
+	return status, nil
 }
 
 func Main() {

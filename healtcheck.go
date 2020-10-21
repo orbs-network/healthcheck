@@ -1,6 +1,7 @@
 package healthcheck
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -52,6 +53,16 @@ func Check(url string) (status Status, err error) {
 	return status, nil
 }
 
+func DumpToDisk(ctx context.Context, output string, rawJSON []byte) {
+	select {
+	case <-ctx.Done():
+		fmt.Println("failed to write to disk:", ctx.Err())
+	default:
+		os.MkdirAll(path.Dir(output), 0644)
+		ioutil.WriteFile(output, rawJSON, 0644)
+	}
+}
+
 func Main() {
 	url := flag.String("url", "", "url to query")
 	output := flag.String("output", "", "path to file")
@@ -66,8 +77,10 @@ func Main() {
 	status, err := Check(*url)
 	rawJSON, _ := json.MarshalIndent(status, "", "  ")
 
-	os.MkdirAll(path.Dir(*output), 0644)
-	ioutil.WriteFile(*output, rawJSON, 0644)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	DumpToDisk(ctx, *output, rawJSON)
 
 	if err != nil {
 		fmt.Println(string(rawJSON))

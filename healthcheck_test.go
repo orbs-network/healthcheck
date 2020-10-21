@@ -1,10 +1,14 @@
 package healthcheck
 
 import (
+	"context"
 	"github.com/orbs-network/healthcheck/service"
 	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestCheck(t *testing.T) {
@@ -26,4 +30,29 @@ func TestCheck(t *testing.T) {
 	require.EqualValues(t, "Not provisioned", statusFailed.Status)
 	require.EqualError(t, errFailed, "failed to parse status JSON: invalid character '\\x01' looking for beginning of value")
 	require.EqualValues(t, "failed to parse status JSON: invalid character '\\x01' looking for beginning of value", statusFailed.Error)
+}
+
+func TestDumpToDisk(t *testing.T) {
+	successfulOutput := "./tmp/success.txt"
+	os.Remove(successfulOutput)
+
+	ctx, cancelSuccess := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancelSuccess()
+
+	DumpToDisk(ctx, successfulOutput, []byte("success"))
+
+	data, err := ioutil.ReadFile(successfulOutput)
+	require.NoError(t, err)
+	require.Equal(t, data, []byte("success"))
+
+	timedOutOutput := "./tmp/timed-out.txt"
+	os.Remove(timedOutOutput)
+
+	ctx, cancelTimeout := context.WithTimeout(context.Background(), 0)
+	defer cancelTimeout()
+
+	DumpToDisk(ctx, timedOutOutput, []byte("lost data"))
+
+	_, err = ioutil.ReadFile(timedOutOutput)
+	require.EqualError(t, err, "open ./tmp/timed-out.txt: no such file or directory")
 }

@@ -54,12 +54,23 @@ func Check(url string) (status Status, err error) {
 }
 
 func DumpToDisk(ctx context.Context, output string, rawJSON []byte) {
+	callback := make(chan interface{})
+	defer close(callback)
+
+	go func() {
+		os.MkdirAll(path.Dir(output), 0644)
+		if err := ioutil.WriteFile(output, rawJSON, 0644); err != nil {
+			fmt.Println("failed to write to disk:", err.Error())
+		}
+
+		callback <- nil
+	}()
+
 	select {
 	case <-ctx.Done():
 		fmt.Println("failed to write to disk:", ctx.Err())
-	default:
-		os.MkdirAll(path.Dir(output), 0644)
-		ioutil.WriteFile(output, rawJSON, 0644)
+	case <-callback:
+		return
 	}
 }
 

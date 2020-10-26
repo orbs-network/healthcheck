@@ -48,7 +48,7 @@ func TestDumpToDisk(t *testing.T) {
 	timedOutOutput := "./tmp/timed-out.txt"
 	os.Remove(timedOutOutput)
 
-	ctx, cancelTimeout := context.WithTimeout(context.Background(), 0)
+	ctx, cancelTimeout := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 	defer cancelTimeout()
 
 	DumpToDisk(ctx, timedOutOutput, []byte("lost data"))

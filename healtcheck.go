@@ -47,19 +47,37 @@ func Check(url string) (status Status, err error) {
 	}
 
 	if !(res.StatusCode >= 200 && res.StatusCode < 300) {
-		return status, fmt.Errorf("unexpected response code %d", res.StatusCode)
+		err := fmt.Errorf("unexpected response code %d", res.StatusCode)
+		status.Error = err.Error()
+		return status, err
 	}
 
 	return status, nil
 }
 
-func DumpToDisk(ctx context.Context, output string, rawJSON []byte) {
+const WRITE_MODE = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+const APPEND_MODE = os.O_WRONLY | os.O_CREATE | os.O_APPEND
+
+// os.O_WRONLY|os.O_CREATE|os.O_TRUNC for truncation
+func WriteFile(filename string, data []byte, perm os.FileMode, openMode int) error {
+	f, err := os.OpenFile(filename, openMode, perm)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
+	return err
+}
+
+func DumpToDisk(ctx context.Context, output string, rawJSON []byte, mode int) {
 	callback := make(chan interface{})
 	defer close(callback)
 
 	go func() {
 		os.MkdirAll(path.Dir(output), 0644)
-		if err := ioutil.WriteFile(output, rawJSON, 0644); err != nil {
+		if err := WriteFile(output, rawJSON, 0644, mode); err != nil {
 			fmt.Println("failed to write to disk:", err.Error())
 		}
 
@@ -77,6 +95,7 @@ func DumpToDisk(ctx context.Context, output string, rawJSON []byte) {
 func Main() {
 	url := flag.String("url", "", "url to query")
 	output := flag.String("output", "", "path to file")
+	log := flag.String("log", "", "path to log file")
 
 	flag.Parse()
 
@@ -91,9 +110,15 @@ func Main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	DumpToDisk(ctx, *output, rawJSON)
+	// write to status
+	DumpToDisk(ctx, *output, rawJSON, WRITE_MODE)
 
 	if err != nil {
+		// write to log in case of an error
+		if *log != "" {
+			DumpToDisk(ctx, *log, rawJSON, APPEND_MODE)
+		}
+
 		fmt.Println(string(rawJSON))
 		os.Exit(1)
 	}

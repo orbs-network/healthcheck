@@ -14,6 +14,8 @@ Usage:
     	path to file
   -url string
     	url to query
+  -log string (optional)
+        path to log file that keeps the statuses that contain errors
 ```
 
 ## Output JSON example

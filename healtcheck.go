@@ -116,6 +116,8 @@ func Main() {
 	if err != nil {
 		// write to log in case of an error
 		if *log != "" {
+			rawJSON, _ := json.Marshal(status)
+			rawJSON = append(rawJSON, []byte("\n")...)
 			DumpToDisk(ctx, *log, rawJSON, APPEND_MODE)
 		}
 

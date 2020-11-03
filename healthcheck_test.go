@@ -58,3 +58,9 @@ func TestDumpToDisk(t *testing.T) {
 	_, err = ioutil.ReadFile(timedOutOutput)
 	require.EqualError(t, err, "open ./tmp/timed-out.txt: no such file or directory")
 }
+
+func TestTimeoutValues(t *testing.T) {
+	// the sum of timeout deadlines should be less than 30s
+
+	require.Less(t, (CHECK_TIMEOUT + DISK_TIMEOUT*2).Nanoseconds(), 30*time.Second.Nanoseconds())
+}

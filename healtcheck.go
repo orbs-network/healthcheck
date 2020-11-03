@@ -27,8 +27,11 @@ func defaultStatus(err error) Status {
 	}
 }
 
+const CHECK_TIMEOUT = 5 * time.Second
+const DISK_TIMEOUT = 12 * time.Second
+
 func Check(url string) (status Status, err error) {
-	client := http.Client{Timeout: 5 * time.Second}
+	client := http.Client{Timeout: CHECK_TIMEOUT}
 	res, err := client.Get(url)
 	if err != nil {
 		return defaultStatus(err), err
@@ -107,18 +110,22 @@ func Main() {
 	status, err := Check(*url)
 	rawJSON, _ := json.MarshalIndent(status, "", "  ")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+	ctxWithDiskTimeoutForStatus, cancelWithDiskTimeoutForStatus := context.WithTimeout(context.Background(), DISK_TIMEOUT)
+	defer cancelWithDiskTimeoutForStatus()
 
 	// write to status
-	DumpToDisk(ctx, *output, rawJSON, WRITE_MODE)
+	DumpToDisk(ctxWithDiskTimeoutForStatus, *output, rawJSON, WRITE_MODE)
 
 	if err != nil {
 		// write to log in case of an error
 		if *log != "" {
 			rawJSON, _ := json.Marshal(status)
 			rawJSON = append(rawJSON, []byte("\n")...)
-			DumpToDisk(ctx, *log, rawJSON, APPEND_MODE)
+
+			ctxWithDiskTimeoutForLogs, cancelWithDiskTimeoutForLogs := context.WithTimeout(context.Background(), DISK_TIMEOUT)
+			defer cancelWithDiskTimeoutForLogs()
+
+			DumpToDisk(ctxWithDiskTimeoutForLogs, *log, rawJSON, APPEND_MODE)
 		}
 
 		fmt.Println(string(rawJSON))
